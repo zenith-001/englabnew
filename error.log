@@ -1,0 +1,3 @@
+SQLSTATE[HY000] [1045] Access denied for user 'db_user'@'localhost' (using password: YES)SQLSTATE[HY000] [1045] Access denied for user 'db_user'@'localhost' (using password: YES)SQLSTATE[HY000] [1045] Access denied for user 'db_user'@'localhost' (using password: YES)SQLSTATE[HY000] [1045] Access denied for user 'db_user'@'localhost' (using password: YES)SQLSTATE[HY000] [1045] Access denied for user 'localhost'@'localhost' (using password: NO)Failed login attempt for user: admin
+Uploaded: 100%
+Successfully uploaded: Test

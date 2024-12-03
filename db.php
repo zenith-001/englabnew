@@ -2,8 +2,8 @@
 // Database connection details
 $host = 'localhost';
 $db = 'movie_database';
-$user = 'db_user';
-$pass = 'db_pass';
+$user = 'root';
+$pass = '';
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$db", $user, $pass);

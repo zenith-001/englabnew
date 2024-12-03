@@ -21,4 +21,19 @@ the following points are to be included in the site:
     It should use FTP connection for storing files.
     FTP should be logged in in the db.php file 
     The site needs to be easily modifiable and easy to read
-    
+
+
+write sql for db
+
+
+what about login.php
+
+
+write a progress bar in upload.php for file upload, it should show how many chunks are uploaded and how many chunks are remaining as well as the total progress percentage
+
+
+make the video player of fixed size in watch.php
+style the list of movies in index.php and make it look nice and sleek
+use fontawesome icons for better UX
+also log the id of movie in error.log
+style the upload.php page properly
