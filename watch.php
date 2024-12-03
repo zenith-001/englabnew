@@ -1,17 +1,24 @@
 <?php
 include 'db.php';
+session_start();
 
+// Fetch movie details based on ID
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
-    $query = $pdo->prepare("SELECT * FROM movies WHERE id = ?");
-    $query->execute([$id]);
-    $movie = $query->fetch();
+    $stmt = $pdo->prepare("SELECT * FROM movies WHERE id = ?");
+    $stmt->execute([$id]);
+    $movie = $stmt->fetch();
 
     if (!$movie) {
-        die("Movie not found.");
+        echo "Movie not found.";
+        exit();
     }
+
+    // Log movie ID
+    file_put_contents('error.log', "Watching movie ID: $id\n", FILE_APPEND);
 } else {
-    die("No movie selected.");
+    echo "No movie specified.";
+    exit();
 }
 ?>
 
@@ -21,12 +28,24 @@ if (isset($_GET['id'])) {
     <meta charset="UTF-8">
     <title>Watch Movie</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        #video-player {
+            width: 800px; /* Fixed width */
+            height: 450px; /* Fixed height */
+            margin: auto;
+            border: 2px solid #ccc;
+            background-color: #000;
+        }
+    </style>
 </head>
 <body>
-    <h1><?= htmlspecialchars($movie['name']) ?></h1>
-    <video controls>
-        <source src="<?= htmlspecialchars($movie['file']) ?>" type="video/mp4">
-        Your browser does not support the video tag.
-    </video>
+    <h1><?php echo htmlspecialchars($movie['name']); ?></h1>
+    <div id="video-player">
+        <video controls width="800" height="450">
+            <source src="<?php echo htmlspecialchars($movie['file']); ?>" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+    </div>
+    <p><?php echo nl2br(htmlspecialchars($movie['description'])); ?></p>
 </body>
 </html>
