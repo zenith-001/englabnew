@@ -11,8 +11,24 @@ if (!isset($_SESSION['admin_logged_in'])) {
 // Handle delete request
 if (isset($_GET['delete_id'])) {
     $delete_id = $_GET['delete_id'];
-    $stmt = $pdo->prepare("DELETE FROM movies WHERE id = ?");
+    
+    // Fetch the file path associated with the movie
+    $stmt = $pdo->prepare("SELECT 'file' FROM movies WHERE id = ?");
     $stmt->execute([$delete_id]);
+    $movie = $stmt->fetch();
+
+    // Check if the movie exists
+    if ($movie) {
+        // Delete the associated file from the server
+        if (file_exists($movie['file_path'])) {
+            unlink($movie['file_path']); // Remove the file
+        }
+        
+        // Now delete the movie record from the database
+        $stmt = $pdo->prepare("DELETE FROM movies WHERE id = ?");
+        $stmt->execute([$delete_id]);
+    }
+    
     header('Location: edit.php'); // Redirect to the same page after deletion
     exit();
 }
@@ -92,7 +108,7 @@ $movies = $stmt->fetchAll();
                     <td><?php echo htmlspecialchars($movie['description']); ?></td>
                     <td>
                         <a href="edit_movie.php?id=<?php echo $movie['id']; ?>"><button>Edit</button></a>
-                        <a href="edit.php?delete_id=<?php echo $movie['id']; ?>" onclick="return confirm('Are you sure you want to delete this movie?');"><button class="delete-button">Delete</button></a>
+                        <a href="edit.php?delete_id=<?php echo $movie['id']; ?>" onclick="return confirm('Are you sure you want to delete this movie? This will also delete the associated file.');"><button class="delete-button">Delete</button></a>
                     </td>
                 </tr>
             <?php endforeach; ?>

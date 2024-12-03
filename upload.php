@@ -1,9 +1,9 @@
 <?php
-include 'db.php';
+include 'db.php'; // This includes the database connection
 session_start();
 
 // Password protection
-if (!isset ($_SESSION['admin_logged_in'])) {
+if (!isset($_SESSION['admin_logged_in'])) {
     header('Location: login.php');
     exit();
 }
@@ -13,45 +13,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $description = $_POST['description'];
     $file = $_FILES['movie_file'];
 
-    // Handle file upload in chunks
-    $upload_dir = 'uploads/';
-    $chunk_size = 100 * 1024 * 1024; // 100 MB
-    $total_size = $file['size'];
-    $chunks = ceil($total_size / $chunk_size);
-    $file_name = $upload_dir . basename($file['name']);
-
-    // Open a file to write
-    $out = fopen($file_name, 'wb');
-    if ($out) {
-        // Read the file in chunks
-        $handle = fopen($file['tmp_name'], 'rb');
-        if ($handle) {
-            $uploaded = 0;
-            while (!feof($handle)) {
-                $buffer = fread($handle, $chunk_size);
-                fwrite($out, $buffer);
-                $uploaded += strlen($buffer);
-                // Calculate progress
-                $progress = ($uploaded / $total_size) * 100;
-                file_put_contents('error.log', "Uploaded: " . round($progress, 2) . "%\n", FILE_APPEND);
-            }
-            fclose($handle);
-        }
-        fclose($out);
-        // Save movie info to the database
-        $stmt = $pdo->prepare("INSERT INTO movies (name, description, file) VALUES (?, ?, ?)");
-        $stmt->execute([$name, $description, $file_name]);
-        file_put_contents('error.log', "Successfully uploaded: $name (ID: " . $pdo->lastInsertId() . ")\n", FILE_APPEND);
-        header('Location: upload.php?success=true');
-        exit();
-    } else {
-        file_put_contents('error.log', "Failed to open output file: $file_name\n", FILE_APPEND);
+    // Check for file upload errors
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        file_put_contents('error.log', "File upload error: " . $file['error'] . "\n", FILE_APPEND);
+        die("File upload error.");
     }
+
+    // Insert movie details into the database first to get the ID
+    $stmt = $pdo->prepare("INSERT INTO movies (name, description) VALUES (?, ?)");
+    $stmt->execute([$name, $description]);
+    $movieId = $pdo->lastInsertId(); // Get the last inserted ID
+
+    // Define the new file name using the movie ID
+    $file_extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+    $new_file_name = $movieId . '.' . $file_extension;
+    $local_file_path = $file['tmp_name']; // Temporary file path on the server
+
+    // Establish FTP connection
+    $ftp_conn = ftp_connect($ftp_server);
+    if (!$ftp_conn) {
+        file_put_contents('error.log', "Could not connect to FTP server.\n", FILE_APPEND);
+        die("Could not connect to FTP server.");
+    }
+
+    // Log in to FTP server
+    if (!ftp_login($ftp_conn, $ftp_user, $ftp_pass)) {
+        ftp_close($ftp_conn);
+        file_put_contents('error.log', "Could not log in to FTP server.\n", FILE_APPEND);
+        die("Could not log in to FTP server.");
+    }
+    // Upload the file to the FTP server
+    if (ftp_put($ftp_conn, "uploads/" . $new_file_name, $local_file_path, FTP_BINARY)) {
+        // Update the database with the new file path
+        $file_path = "uploads/" . $new_file_name; // Path on the FTP server
+        $stmt = $pdo->prepare("UPDATE movies SET 'file' = ? WHERE id = ?");
+
+        // Execute the statement and check for errors
+        if ($stmt->execute([$file_path, $movieId])) {
+            // Log successful upload
+            file_put_contents('error.log', "Successfully uploaded movie: $name (ID: $movieId) with file path: $file_path\n", FILE_APPEND);
+
+            header('Location: upload.php?success=true');
+            exit();
+        } else {
+            // Log error if the update fails
+            file_put_contents('error.log', "Failed to update database with file path for movie ID: $movieId\n", FILE_APPEND);
+        }
+    } else {
+        file_put_contents('error.log', "Failed to upload file: $new_file_name\n", FILE_APPEND);
+    }
+
+    // Close FTP connection
+    ftp_close($ftp_conn);
 }
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Upload Movie</title>
@@ -65,10 +84,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin: 0;
             padding: 20px;
         }
+
         h1 {
             text-align: center;
             color: #ffffff;
         }
+
         form {
             background: #1e1e1e;
             padding: 20px;
@@ -77,7 +98,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             max-width: 600px;
             margin: auto;
         }
-        input[type="text"], textarea, input[type="file"] {
+
+        input[type="text"],
+        textarea,
+        input[type="file"] {
             width: 100%;
             padding: 10px;
             margin: 10px 0;
@@ -86,6 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background-color: #2a2a2a;
             color: #ffffff;
         }
+
         button {
             background-color: #4CAF50;
             color: white;
@@ -95,15 +120,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             cursor: pointer;
             width: 100%;
         }
+
         button:hover {
             background-color: #45a049;
         }
+
         #progress-bar {
             width: 100%;
             background-color: #f3f3f3;
             border: 1px solid #ccc;
             margin-top: 20px;
         }
+
         #progress {
             width: 0;
             height: 30px;
@@ -114,43 +142,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     </style>
 </head>
+
 <body>
     <h1>Upload Movie</h1>
-    <form id="upload-form" method="POST" enctype="multipart/form-data">
+    <form method="POST" enctype="multipart/form-data">
         <input type="text" name="name" placeholder="Movie Name" required>
         <textarea name="description" placeholder="Movie Description" required></textarea>
         <input type="file" name="movie_file" required>
-        <button type="submit"><i class="fas fa-upload"></i> Upload</button>
+        <button type="submit">Upload Movie</button>
     </form>
-
     <div id="progress-bar">
         <div id="progress">0%</div>
     </div>
 
     <script>
-        <?php 
-            if (isset($_GET["success"])) {
-                echo "console.log('Successfully uploaded the movie');";
-                echo "alert('Successfully uploaded the movie');";
-            }
-        ?>
-        document.getElementById('upload-form').onsubmit = function(event) {
-            event.preventDefault(); // Prevent default form submission
+        const form = document.querySelector('form');
+        const progressBar = document.getElementById('progress');
 
-            var formData = new FormData(this);
-            var xhr = new XMLHttpRequest();
+        form.addEventListener('submit', function (event) {
+            event.preventDefault(); // Prevent the default form submission
 
-            xhr.upload.addEventListener('progress', function(e) {
+            const formData = new FormData(form);
+            const xhr = new XMLHttpRequest();
+
+            xhr.open('POST', form.action, true);
+
+            xhr.upload.addEventListener('progress', function (e) {
                 if (e.lengthComputable) {
-                    var percentComplete = (e.loaded / e.total) * 100;
-                    document.getElementById('progress').style.width = percentComplete + '%';
-                    document.getElementById('progress').textContent = Math.round(percentComplete) + '%';
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    progressBar.style.width = percentComplete + '%';
+                    progressBar.textContent = Math.round(percentComplete) + '%';
                 }
-            }, false);
+            });
 
-            xhr.open('POST', 'upload.php', true);
+            xhr.onload = function () {
+                if (xhr.status === 200) {
+                    alert('Upload successful!');
+                    window.location.reload(); // Reload the page to see the new upload
+                } else {
+                    alert('Upload failed. Please try again.');
+                }
+            };
+
             xhr.send(formData);
-        };
+        });
     </script>
 </body>
+
 </html>

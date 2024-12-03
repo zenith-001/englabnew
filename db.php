@@ -14,7 +14,8 @@ try {
 }
 
 // FTP configuration
-$ftp_server = "ftp.example.com";
-$ftp_user = "ftp_user";
-$ftp_pass = "ftp_pass";
+$ftp_server = "localhost"; // Replace with your FTP server
+$ftp_user = "zenith"; // Replace with your FTP username
+$ftp_pass = "8038@Zenith"; // Replace with your FTP password
+
 ?>
