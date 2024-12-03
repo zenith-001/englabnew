@@ -1,0 +1,24 @@
+write a php website where the administrators can upload movies and the users can watch it.
+the following points are to be included in the site:
+    The files should be:
+        db.php for database connection
+        index.php for movie browsing page
+        upload.php for uploading the movies
+        edit.php for editing the title and description as well as for deleting the uploaded movie
+        watch.php for watching the selected movie
+        error.log for logging all the errors and success messages as well
+        styles.css for designs
+        uploads/ this is the directory where movies will be stored
+    The site should have a sleek nice aesthetic modern dark themed designs
+    The files should be uploaded chunks by chunks of 100mb each
+    The file should be named as the ID of the entry
+    An entry should include a unique id, movie name,movie description and movie file
+    All the errors encountered must be logged even the minor ones
+    The home page (index.php) should have a search bar
+    The watching page (watch.php) should be optimized for low bandwidth situations
+    The site should be responsive
+    The admin pages that are (edit.php and upload.php) should be password protected you can add some extra files if required
+    It should use FTP connection for storing files.
+    FTP should be logged in in the db.php file 
+    The site needs to be easily modifiable and easy to read
+    
