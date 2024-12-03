@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $pdo->prepare("INSERT INTO movies (name, description, file) VALUES (?, ?, ?)");
         $stmt->execute([$name, $description, $file_name]);
         file_put_contents('error.log', "Successfully uploaded: $name (ID: " . $pdo->lastInsertId() . ")\n", FILE_APPEND);
-        header('Location: index.php');
+        header('Location: upload.php?success=true');
         exit();
     } else {
         file_put_contents('error.log', "Failed to open output file: $file_name\n", FILE_APPEND);
@@ -128,6 +128,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
+        <?php 
+            if (isset($_GET["success"])) {
+                echo "console.log('Successfully uploaded the movie');";
+                echo "alert('Successfully uploaded the movie');";
+            }
+        ?>
         document.getElementById('upload-form').onsubmit = function(event) {
             event.preventDefault(); // Prevent default form submission
 

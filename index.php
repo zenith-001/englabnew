@@ -49,6 +49,8 @@ $movies = $stmt->fetchAll();
             overflow: hidden;
             text-align: center;
             background: #1e1e1e;
+            padding: 12px;
+            padding-bottom:32px;
             transition: transform 0.3s;
         }
         .movie-item:hover {
@@ -58,13 +60,14 @@ $movies = $stmt->fetchAll();
             font-weight: bold;
             padding: 10px;
             color: #ffffff;
+            margin-bottom:25px;
         }
         .watch-button {
             background-color: #4CAF50;
             color: white;
             padding: 10px 20px;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
             margin-bottom: 10px;
             text-decoration: none;
