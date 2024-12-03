@@ -3,7 +3,7 @@ include 'db.php';
 session_start();
 
 // Password protection
-if (!isset($_SESSION['admin_logged_in'])) {
+if (!isset ($_SESSION['admin_logged_in'])) {
     header('Location: login.php');
     exit();
 }
@@ -60,19 +60,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
+            background-color: #121212;
+            color: #ffffff;
             margin: 0;
             padding: 20px;
         }
         h1 {
             text-align: center;
-            color: #333;
+            color: #ffffff;
         }
         form {
-            background: #fff;
+            background: #1e1e1e;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
             max-width: 600px;
             margin: auto;
         }
@@ -80,8 +81,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             width: 100%;
             padding: 10px;
             margin: 10px 0;
-            border: 1px solid #ccc;
+            border: 1px solid #444;
             border-radius: 4px;
+            background-color: #2a2a2a;
+            color: #ffffff;
         }
         button {
             background-color: #4CAF50;
@@ -132,7 +135,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             var xhr = new XMLHttpRequest();
 
             xhr.upload.addEventListener('progress', function(e) {
-                if (e.lengthComputable) var percentComplete = (e.loaded / e.total) * 100;
+                if (e.lengthComputable) {
+                    var percentComplete = (e.loaded / e.total) * 100;
                     document.getElementById('progress').style.width = percentComplete + '%';
                     document.getElementById('progress').textContent = Math.round(percentComplete) + '%';
                 }

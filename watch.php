@@ -29,12 +29,21 @@ if (isset($_GET['id'])) {
     <title>Watch Movie</title>
     <link rel="stylesheet" href="styles.css">
     <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+        }
         #video-player {
             width: 800px; /* Fixed width */
             height: 450px; /* Fixed height */
             margin: auto;
-            border: 2px solid #ccc;
+            border: 2px solid #444;
             background-color: #000;
+        }
+        h1 {
+            text-align: center;
+            color: #ffffff;
         }
     </style>
 </head>
