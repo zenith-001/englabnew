@@ -51,7 +51,7 @@ if (isset($_GET['id'])) {
     <h1><?php echo htmlspecialchars($movie['name']); ?></h1>
     <div id="video-player">
         <video controls width="800" height="450">
-            <source src="<?php echo htmlspecialchars($movie['file']); ?>" type="video/mp4">
+            <source src="<?php echo htmlspecialchars($movie['file_path']); ?>" type="video/mp4">
             Your browser does not support the video tag.
         </video>
     </div>

@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (ftp_put($ftp_conn, "uploads/" . $new_file_name, $local_file_path, FTP_BINARY)) {
         // Update the database with the new file path
         $file_path = "uploads/" . $new_file_name; // Path on the FTP server
-        $stmt = $pdo->prepare("UPDATE movies SET 'file' = ? WHERE id = ?");
+        $stmt = $pdo->prepare("UPDATE movies SET file_path = ? WHERE id = ?");
 
         // Execute the statement and check for errors
         if ($stmt->execute([$file_path, $movieId])) {

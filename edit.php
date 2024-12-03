@@ -13,7 +13,7 @@ if (isset($_GET['delete_id'])) {
     $delete_id = $_GET['delete_id'];
     
     // Fetch the file path associated with the movie
-    $stmt = $pdo->prepare("SELECT 'file' FROM movies WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT file_path FROM movies WHERE id = ?");
     $stmt->execute([$delete_id]);
     $movie = $stmt->fetch();
 
