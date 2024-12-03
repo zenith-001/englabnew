@@ -7,7 +7,6 @@ if (!isset($_SESSION['admin_logged_in'])) {
     header('Location: login.php');
     exit();
 }
-
 // Handle delete request
 if (isset($_GET['delete_id'])) {
     $delete_id = $_GET['delete_id'];
@@ -21,14 +20,24 @@ if (isset($_GET['delete_id'])) {
     if ($movie) {
         // Delete the associated file from the server
         if (file_exists($movie['file_path'])) {
-            unlink($movie['file_path']); // Remove the file
+            if (unlink($movie['file_path'])) {
+                // File deleted successfully
+                file_put_contents('error.log', "Successfully deleted file: " . $movie['file_path'] . "\n", FILE_APPEND);
+            } else {
+                // Log error if file deletion fails
+                file_put_contents('error.log', "Failed to delete file: " . $movie['file_path'] . "\n", FILE_APPEND);
+            }
+        } else {
+            file_put_contents('error.log', "File does not exist: " . $movie['file_path'] . "\n", FILE_APPEND);
         }
         
         // Now delete the movie record from the database
         $stmt = $pdo->prepare("DELETE FROM movies WHERE id = ?");
         $stmt->execute([$delete_id]);
+    } else {
+        file_put_contents('error.log', "Movie with ID $delete_id not found.\n", FILE_APPEND);
     }
-    
+
     header('Location: edit.php'); // Redirect to the same page after deletion
     exit();
 }
