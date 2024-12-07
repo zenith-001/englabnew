@@ -9,109 +9,92 @@ if (!isset($_SESSION['admin_logged_in'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $name = $_POST['name'];
-    $description = $_POST['description'];
-    $file = $_FILES['movie_file'];
-    file_put_contents('error.log', print_r($_FILES, true), FILE_APPEND);
-    // Check for file upload errors
-    if ($file['error'] !== UPLOAD_ERR_OK) {
-        $errorCode = $file['error'];
-        file_put_contents('error.log', "File upload error: " . $errorCode . "\n", FILE_APPEND);
-        die("File upload error.");
-    }
+    // Check if the request is for the initial upload or a chunk upload
+    if (isset($_POST['total_chunks'])) {
+        $chunkIndex = $_POST['chunk_index'];
+        $totalChunks = $_POST['total_chunks'];
+        $movieId = $_POST['movie_id']; // Get the movie ID from the POST data
 
-    // Insert movie details into the database first to get the ID
-    try {
-        $stmt = $pdo->prepare("INSERT INTO movies (name, description) VALUES (?, ?)");
-        $stmt->execute([$name, $description]);
-        $movieId = $pdo->lastInsertId(); // Get the last inserted ID
-    } catch (PDOException $e) {
-        file_put_contents('error.log', "Database insert error: " . $e->getMessage() . "\n", FILE_APPEND);
-        die("Database insert error.");
-    }
+        // Handle chunk upload
+        $file = $_FILES['movie_file'];
+        $subtitleFile = $_FILES['subtitle_file']; // Handle subtitle file
+        $file_extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $new_file_name = $movieId . '.' . $file_extension;
 
-    // Define the new file name using the movie ID
-    $file_extension = pathinfo($file['name'], PATHINFO_EXTENSION);
-    $new_file_name = $movieId . '.' . $file_extension;
-    $local_file_path = $file['tmp_name']; // Temporary file path on the server
+        // Save the chunk to a temporary file
+        $chunkPath = "uploads/" . $new_file_name . '.part' . $chunkIndex;
+        move_uploaded_file($file['tmp_name'], $chunkPath);
 
-    // Establish FTP connection
-    $ftp_conn = ftp_connect($ftp_server);
-    if (!$ftp_conn) {
-        file_put_contents('error.log', "Could not connect to FTP server.\n", FILE_APPEND);
-        die("Could not connect to FTP server.");
-    }
+        // Check if all chunks have been uploaded
+        if ($chunkIndex + 1 == $totalChunks) {
+            // Combine the uploaded chunks into a single file
+            $combinedFilePath = "uploads/" . $new_file_name; // Path for the combined file
+            $combinedFile = fopen($combinedFilePath, 'wb'); // Open the combined file for writing
 
-    // Log in to FTP server
-    if (!ftp_login($ftp_conn, $ftp_user, $ftp_pass)) {
-        ftp_close($ftp_conn);
-        file_put_contents('error.log', "Could not log in to FTP server.\n", FILE_APPEND);
-        die("Could not log in to FTP server.");
-    }
+            for ($i = 0; $i < $totalChunks; $i++) {
+                $chunkPath = "uploads/" . $new_file_name . '.part' . $i; // Path of the chunk file
+                if (file_exists($chunkPath)) {
+                    $chunkData = file_get_contents($chunkPath); // Read the chunk data
+                    fwrite($combinedFile, $chunkData); // Write the chunk data to the combined file
+                    unlink($chunkPath); // Delete the chunk file after combining
+                } else {
+                    file_put_contents('error.log', "Chunk file $chunkPath does not exist.\n", FILE_APPEND);
+                    die("Chunk file $chunkPath does not exist.");
+                }
+            }
 
-    // Chunk size of 100MB
-    $chunkSize = 100 * 1024 * 1024; // 100MB
-    $fileSize = $file['size'];
-    $chunkCount = ceil($fileSize / $chunkSize);
+            fclose($combinedFile); // Close the combined file
 
-    // Upload each chunk
-    for ($i = 0; $i < $chunkCount; $i++) {
-        $chunkPath = $local_file_path . '.part' . $i; // Create a temporary chunk file
-        $handle = fopen($local_file_path, 'rb');
-        fseek($handle, $i * $chunkSize); // Move the pointer to the correct chunk position
-        $chunkData = fread($handle, $chunkSize); // Read the chunk
-        fclose($handle);
+            // Handle subtitle file upload
+            if ($subtitleFile['error'] === UPLOAD_ERR_OK) {
+                $subtitle_extension = pathinfo($subtitleFile['name'], PATHINFO_EXTENSION);
+                $subtitleFileName = $movieId . '.' . $subtitle_extension; // Name the subtitle file with the movie ID
+                $subtitleFilePath = "uploads/" . $subtitleFileName;
 
-        // Write the chunk to a temporary file
-        file_put_contents($chunkPath, $chunkData);
+                // Move the uploaded subtitle file
+                move_uploaded_file($subtitleFile['tmp_name'], $subtitleFilePath);
+            } else {
+                file_put_contents('error.log', "Subtitle file upload error: " . $subtitleFile['error'] . "\n", FILE_APPEND);
+            }
 
-        // Upload the chunk to the FTP server
-        if (ftp_put($ftp_conn, "uploads/" . $new_file_name . '.part' . $i, $chunkPath, FTP_BINARY)) {
-            file_put_contents('error.log', "Successfully uploaded chunk $i for movie ID: $movieId\n", FILE_APPEND);
-            unlink($chunkPath); // Delete the temporary chunk file after upload
+            // Update the database with the final file path
+            try {
+                $stmt = $pdo->prepare("UPDATE movies SET file_path = ?, subtitle_path = ? WHERE id = ?");
+                $stmt->execute([$combinedFilePath, $subtitleFilePath ?? null, $movieId]);
+            } catch (PDOException $e) {
+                file_put_contents('error.log', "Database update error: " . $e->getMessage() . "\n", FILE_APPEND);
+                die("Database update error.");
+            }
+
+            echo "File uploaded successfully!";
         } else {
-            file_put_contents('error.log', "Failed to upload chunk $i for movie ID: $movieId\n", FILE_APPEND);
-            die("Failed to upload chunk $i.");
+            echo "Chunk uploaded successfully!";
+        }
+        exit();
+    } else {
+        // Initial upload request
+        $name = $_POST['name'];
+        $description = $_POST['description'];
+
+        // Insert movie details into the database first to get the ID
+        try {
+            $stmt = $pdo->prepare("INSERT INTO movies (name, description) VALUES (?, ?)");
+            $stmt->execute([$name, $description]);
+            $movieId = $pdo->lastInsertId(); // Get the last inserted ID
+            echo json_encode(['movie_id' => $movieId]); // Return the movie ID for chunk uploads
+            exit();
+        } catch (PDOException $e) {
+            file_put_contents('error.log', "Database insert error: " . $e->getMessage() . "\n", FILE_APPEND);
+            die("Database insert error.");
         }
     }
-
-    // Combine the uploaded chunks into a single file
-    $combinedFilePath = "uploads/" . $new_file_name; // Path for the combined file
-    $combinedFile = fopen($combinedFilePath, 'wb'); // Open the combined file for writing
-
-    for ($i = 0; $i < $chunkCount; $i++) {
-        $chunkPath = "uploads/" . $new_file_name . '.part' . $i; // Path of the chunk file
-        if (file_exists($chunkPath)) {
-            $chunkData = file_get_contents($chunkPath); // Read the chunk data
-            fwrite($combinedFile, $chunkData); // Write the chunk data to the combined file
-            unlink($chunkPath); // Delete the chunk file after combining
-        } else {
-            file_put_contents('error.log', "Chunk file $chunkPath does not exist.\n", FILE_APPEND);
-            die("Chunk file $chunkPath does not exist.");
-        }
-    }
-
-    fclose($combinedFile); // Close the combined file
-
-    // Update the database with the final file path
-    try {
-        $stmt = $pdo->prepare("UPDATE movies SET file_path = ? WHERE id = ?");
-        $stmt->execute([$combinedFilePath, $movieId]);
-    } catch (PDOException $e) {
-        file_put_contents('error.log', "Database update error: " . $e->getMessage() . "\n", FILE_APPEND);
-        die("Database update error.");
-    }
-
-    ftp_close($ftp_conn); // Close the FTP connection
-    echo "File uploaded successfully!";
 }
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF- ```html
     <title>Upload Movie</title>
     <link rel="stylesheet" href="styles.css">
     <style>
@@ -177,13 +160,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     </style>
 </head>
-
 <body>
     <h1>Upload Movie</h1>
     <form method="POST" enctype="multipart/form-data" id="upload-form">
         <input type="text" name="name" placeholder="Movie Name" required>
         <input type="text" name="description" placeholder="Movie Description" required>
         <input type="file" name="movie_file" required>
+        <input type="file" name="subtitle_file" required> <!-- New subtitle file input -->
         <button type="submit">Upload Movie</button>
         <div class="progress">
             <div class="progress-bar" id="progress-bar"></div>
@@ -191,37 +174,76 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </form>
 
     <script>
-        // JavaScript for progress bar
-        const form = document.getElementById('upload-form');
-        const progressBar = document.getElementById('progress-bar');
+    const form = document.getElementById('upload-form');
+    const progressBar = document.getElementById('progress-bar');
 
-        form.addEventListener('submit', function (event) {
-            event.preventDefault(); // Prevent default form submission
+    form.addEventListener('submit', function (event) {
+        event.preventDefault(); // Prevent default form submission
 
-            const formData = new FormData(form);
-            const xhr = new XMLHttpRequest();
+        const fileInput = document.querySelector('input[name="movie_file"]');
+        const subtitleInput = document.querySelector('input[name="subtitle_file"]');
+        const file = fileInput.files[0];
+        const chunkSize = 100 * 1024 * 1024; // 100MB
+        const totalChunks = Math.ceil(file.size / chunkSize);
+        let currentChunk = 0;
 
-            xhr.open('POST', 'upload.php', true);
+        // Initial upload to get movie ID
+        const initialFormData = new FormData();
+        initialFormData.append('name', document.querySelector('input[name="name"]').value);
+        initialFormData.append('description', document.querySelector('input[name="description"]').value);
+        initialFormData.append('subtitle_file', subtitleInput.files[0]); // Include subtitle file
 
-            xhr.upload.addEventListener('progress', function (e) {
-                if (e.lengthComputable) {
-                    const percentComplete = (e.loaded / e.total) * 100;
-                    progressBar.style.width = percentComplete + '%';
+        const xhrInitial = new XMLHttpRequest();
+        xhrInitial.open('POST', 'upload.php', true);
+        xhrInitial.onload = function () {
+            if (xhrInitial.status === 200) {
+                const response = JSON.parse(xhrInitial.responseText);
+                const movieId = response.movie_id; // Get the movie ID for chunk uploads
+
+                function uploadChunk() {
+                    const start = currentChunk * chunkSize;
+                    const end = Math.min(start + chunkSize, file.size);
+                    const chunk = file.slice(start, end);
+                    const formData = new FormData();
+                    formData.append('movie_file', chunk, file.name);
+                    formData.append('chunk_index', currentChunk);
+                    formData.append('total_chunks', totalChunks);
+                    formData.append('movie_id', movieId); // Include movie ID
+
+                    const xhrChunk = new XMLHttpRequest();
+                    xhrChunk.open('POST', 'upload.php', true);
+
+                    xhrChunk.upload.addEventListener('progress', function (e) {
+                        if (e.lengthComputable) {
+                            const percentComplete = ((currentChunk * chunkSize + e.loaded) / file.size) * 100;
+                            progressBar.style.width = percentComplete + '%';
+                        }
+                    });
+                    xhrChunk.onload = function () {
+                        if (xhrChunk.status === 200) {
+                            currentChunk++;
+                            if (currentChunk < totalChunks) {
+                                uploadChunk(); // continue uploading the next chunk
+                            } else {
+                                progressBar.style.width = '100%'; // Complete progress
+                                alert('Upload completed successfully!');
+                            }
+                        } else {
+                            alert('Error uploading chunk: ' + xhrChunk.responseText);
+                        }
+                    };
+
+                    xhrChunk.send(formData);
                 }
-            });
-            console.log(formData);
-            xhr.onload = function () {
-            console.log("Loded:",formData);
-                if (xhr.status === 200) {
-                    alert('Upload successful!');
-                } else {
-                    alert('Upload failed.');
-                }
-            };
 
-            xhr.send(formData);
-        });
+                uploadChunk(); // Start uploading the first chunk
+            } else {
+                alert('Error starting upload: ' + xhrInitial.responseText);
+            }
+        };
+
+        xhrInitial.send(initialFormData); // Send initial data to get movie ID
+    });
     </script>
 </body>
-
 </html>

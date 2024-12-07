@@ -37,3 +37,6 @@ style the list of movies in index.php and make it look nice and sleek
 use fontawesome icons for better UX
 also log the id of movie in error.log
 style the upload.php page properly
+
+
+ALTER TABLE movies ADD COLUMN subtitle_path VARCHAR(255) DEFAULT NULL;
