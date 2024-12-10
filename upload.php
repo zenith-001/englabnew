@@ -93,8 +93,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF- ```html
+    <meta charset="UTF-8">
     <title>Upload Movie</title>
     <link rel="stylesheet" href="styles.css">
     <style>
@@ -160,6 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     </style>
 </head>
+
 <body>
     <h1>Upload Movie</h1>
     <form method="POST" enctype="multipart/form-data" id="upload-form">
@@ -174,76 +176,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </form>
 
     <script>
-    const form = document.getElementById('upload-form');
-    const progressBar = document.getElementById('progress-bar');
+        const form = document.getElementById('upload-form');
+        const progressBar = document.getElementById('progress-bar');
 
-    form.addEventListener('submit', function (event) {
-        event.preventDefault(); // Prevent default form submission
+        form.addEventListener('submit', function (event) {
+            event.preventDefault(); // Prevent default form submission
 
-        const fileInput = document.querySelector('input[name="movie_file"]');
-        const subtitleInput = document.querySelector('input[name="subtitle_file"]');
-        const file = fileInput.files[0];
-        const chunkSize = 100 * 1024 * 1024; // 100MB
-        const totalChunks = Math.ceil(file.size / chunkSize);
-        let currentChunk = 0;
+            const fileInput = document.querySelector('input[name="movie_file"]');
+            const subtitleInput = document.querySelector('input[name="subtitle_file"]');
+            const file = fileInput.files[0];
+            const chunkSize = 100 * 1024 * 1024; // 100MB
+            const totalChunks = Math.ceil(file.size / chunkSize);
+            let currentChunk = 0;
 
-        // Initial upload to get movie ID
-        const initialFormData = new FormData();
-        initialFormData.append('name', document.querySelector('input[name="name"]').value);
-        initialFormData.append('description', document.querySelector('input[name="description"]').value);
-        initialFormData.append('subtitle_file', subtitleInput.files[0]); // Include subtitle file
+            // Initial upload to get movie ID
+            const initialFormData = new FormData();
+            initialFormData.append('name', document.querySelector('input[name="name"]').value);
+            initialFormData.append('description', document.querySelector('input[name="description"]').value);
+            initialFormData.append('subtitle_file', subtitleInput.files[0]); // Include subtitle file
 
-        const xhrInitial = new XMLHttpRequest();
-        xhrInitial.open('POST', 'upload.php', true);
-        xhrInitial.onload = function () {
-            if (xhrInitial.status === 200) {
-                const response = JSON.parse(xhrInitial.responseText);
-                const movieId = response.movie_id; // Get the movie ID for chunk uploads
+            const xhrInitial = new XMLHttpRequest();
+            xhrInitial.open('POST', 'upload.php', true);
+            xhrInitial.onload = function () {
+                if (xhrInitial.status === 200) {
+                    const response = JSON.parse(xhrInitial.responseText);
+                    const movieId = response.movie_id; // Get the movie ID for chunk uploads
 
-                function uploadChunk() {
-                    const start = currentChunk * chunkSize;
-                    const end = Math.min(start + chunkSize, file.size);
-                    const chunk = file.slice(start, end);
-                    const formData = new FormData();
-                    formData.append('movie_file', chunk, file.name);
-                    formData.append('chunk_index', currentChunk);
-                    formData.append('total_chunks', totalChunks);
-                    formData.append('movie_id', movieId); // Include movie ID
+                    function uploadChunk() {
+                        const start = currentChunk * chunkSize;
+                        const end = Math.min(start + chunkSize, file.size);
+                        const chunk = file.slice(start, end);
+                        const formData = new FormData();
+                        formData.append('movie_file', chunk, file.name);
+                        formData.append('chunk_index', currentChunk);
+                        formData.append('total_chunks', totalChunks);
+                        formData.append('movie_id', movieId); // Include movie ID
 
-                    const xhrChunk = new XMLHttpRequest();
-                    xhrChunk.open('POST', 'upload.php', true);
+                        const xhrChunk = new XMLHttpRequest();
+                        xhrChunk.open('POST', 'upload.php', true);
 
-                    xhrChunk.upload.addEventListener('progress', function (e) {
-                        if (e.lengthComputable) {
-                            const percentComplete = ((currentChunk * chunkSize + e.loaded) / file.size) * 100;
-                            progressBar.style.width = percentComplete + '%';
-                        }
-                    });
-                    xhrChunk.onload = function () {
-                        if (xhrChunk.status === 200) {
-                            currentChunk++;
-                            if (currentChunk < totalChunks) {
-                                uploadChunk(); // continue uploading the next chunk
-                            } else {
-                                progressBar.style.width = '100%'; // Complete progress
-                                alert('Upload completed successfully!');
+                        xhrChunk.upload.addEventListener('progress', function (e) {
+                            if (e.lengthComputable) {
+                                const percentComplete = ((currentChunk * chunkSize + e.loaded) / file.size) * 100;
+                                progressBar.style.width = percentComplete + '%';
                             }
-                        } else {
-                            alert('Error uploading chunk: ' + xhrChunk.responseText);
-                        }
-                    };
+                        });
+                        xhrChunk.onload = function () {
+                            if (xhrChunk.status === 200) {
+                                currentChunk++;
+                                if (currentChunk < totalChunks) {
+                                    uploadChunk(); // continue uploading the next chunk
+                                } else {
+                                    progressBar.style.width = '100%'; // Complete progress
+                                    alert('Upload completed successfully!');
+                                }
+                            } else {
+                                alert('Error uploading chunk: ' + xhrChunk.responseText);
+                            }
+                        };
 
-                    xhrChunk.send(formData);
+                        xhrChunk.send(formData);
+                    }
+
+                    uploadChunk(); // Start uploading the first chunk
+                } else {
+                    alert('Error starting upload: ' + xhrInitial.responseText);
                 }
+            };
 
-                uploadChunk(); // Start uploading the first chunk
-            } else {
-                alert('Error starting upload: ' + xhrInitial.responseText);
-            }
-        };
-
-        xhrInitial.send(initialFormData); // Send initial data to get movie ID
-    });
+            xhrInitial.send(initialFormData); // Send initial data to get movie ID
+        });
     </script>
 </body>
+
 </html>
