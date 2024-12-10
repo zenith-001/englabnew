@@ -1,42 +1,28 @@
-Watching movie ID: 86
-Chunk file uploads/43.mp4.part0 does not exist.
-Watching movie ID: 43
-Subtitle file upload error: 
-Watching movie ID: 43
-Watching movie ID: 44
-Movie ID 43 deleted successfully.
-Movie entry with ID 43 does not exist in database.
-Movie entry with ID 43 does not exist in database.
-Movie entry with ID 43 does not exist in database.
-Movie entry with ID 43 does not exist in database.
-Movie entry with ID 43 does not exist in database.
-Movie entry with ID 43 does not exist in database.
-Subtitle file upload error: 
-Movie entry with ID 43 does not exist in database.
-Watching movie ID: 44
-Movie entry with ID 43 does not exist in database.
-Movie ID 45 deleted successfully.
-Subtitle file upload error: 
-Movie entry with ID 45 does not exist in database.
-Watching movie ID: 44
-Watching movie ID: 46
+Watching movie ID: 47
+Movie entry with ID 46 does not exist in database.
+Watching movie ID: 47
 Subtitle File Details: Array
 (
-    [name] => a.srt
+    [name] => The.Shawshank.Redemption.1994.1080p.x264.YIFY.srt
     [type] => application/octet-stream
-    [tmp_name] => C:\xampp\tmp\php2110.tmp
+    [tmp_name] => C:\xampp\tmp\phpB06C.tmp
     [error] => 0
-    [size] => 739
+    [size] => 133443
 )
 
-Subtitle file uploaded successfully: uploads/47.srt
-Watching movie ID: 47
-Watching movie ID: 47
-Watching movie ID: 47
-Watching movie ID: 47
-Watching movie ID: 47
-Watching movie ID: 47
-Watching movie ID: 47
-Movie entry with ID 45 does not exist in database.
-Movie ID 44 deleted successfully.
-Movie ID 46 deleted successfully.
+Subtitle file uploaded successfully: uploads/48.srt
+Movie entry with ID 46 does not exist in database.
+Watching movie ID: 48
+Watching movie ID: 48
+Watching movie ID: 48
+Watching movie ID: 48
+Watching movie ID: 48
+Unexpected subtitle format: srt
+Movie entry with ID 46 does not exist in database.
+Watching movie ID: 49
+Watching movie ID: 49
+Watching movie ID: 49
+Watching movie ID: 49
+Movie entry with ID 46 does not exist in database.
+Movie ID 48 deleted successfully.
+Movie ID 47 deleted successfully.

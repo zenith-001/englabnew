@@ -24,6 +24,7 @@ if (isset($_GET['id'])) {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Watch Movie</title>
@@ -34,77 +35,68 @@ if (isset($_GET['id'])) {
             color: #ffffff;
             font-family: Arial, sans-serif;
         }
+
         #video-player {
-            width: 800px; /* Fixed width */
-            height: 450px; /* Fixed height */
+            width: 800px;
+            /* Fixed width */
+            height: 450px;
+            /* Fixed height */
             margin: auto;
             border: 2px solid #444;
             background-color: #000;
         }
+
         h1 {
             text-align: center;
             color: #ffffff;
         }
     </style>
 </head>
+
 <body>
-    <h1><?php echo htmlspecialchars($movie['name']); ?></h1>
+    <h1>
+        <?php echo htmlspecialchars($movie['name']); ?>
+    </h1>
     <div id="video-player">
         <video controls width="800" height="450">
             <source src="<?php echo htmlspecialchars($movie['file_path']); ?>" type="video/mp4">
-            
-            <?php 
-            // Add subtitle track if subtitle exists
+            <?php
+            // Enhanced subtitle handling
             if (!empty($movie['subtitle_path'])) {
-                $subtitleExtension = pathinfo($movie['subtitle_path'], PATHINFO_EXTENSION);
-                $subtitleMimeType = '';
-                
-                // Determine subtitle mime type based on file extension
-                switch (strtolower($subtitleExtension)) {
-                    case 'srt':
-                        $subtitleMimeType = 'text/srt';
-                        break;
-                    case 'vtt':
-                        $subtitleMimeType = 'text/vtt';
-                        break;
-                    case 'webvtt':
-                        $subtitleMimeType = 'text/vtt';
-                        break;
-                    default:
-                        $subtitleMimeType = 'text/plain';
+                $subtitleExtension = strtolower(pathinfo($movie['subtitle_path'], PATHINFO_EXTENSION));
+
+                // Ensure it's WebVTT
+                if ($subtitleExtension !== 'vtt') {
+                    // Log potential issue
+                    file_put_contents('error.log', "Unexpected subtitle format: $subtitleExtension\n", FILE_APPEND);
                 }
-                
-                // Determine language (you might want to add a language column to your database)
-                $subtitleLanguage = 'en'; // Default to English, can be made dynamic
-                
-                echo '<track 
-                    kind="subtitles" 
-                    src="' . htmlspecialchars($movie['subtitle_path']) . '" 
-                    srclang="' . $subtitleLanguage . '" 
-                    label="' . ucfirst($subtitleLanguage) . '" 
-                    type="' . $subtitleMimeType . '"
-                >';
             }
             ?>
-            
+
+            <track kind="subtitles" src="<?php echo htmlspecialchars($movie['subtitle_path']); ?>" srclang="en"
+                label="English" default>
+
             Your browser does not support the video tag.
         </video>
     </div>
-    <p><?php echo nl2br(htmlspecialchars($movie['description'])); ?></p>
+    <p>
+        <?php echo nl2br(htmlspecialchars($movie['description'])); ?>
+    </p>
 
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const video = document.querySelector('video');
-        const subtitleTrack = video.querySelector('track');
+        document.addEventListener('DOMContentLoaded', function () {
+            const video = document.querySelector('video');
+            const subtitleTrack = video.querySelector('track');
 
-        if (subtitleTrack) {
-            // Optional: Set the first subtitle track as default
-            subtitleTrack.mode = 'showing';
+            if (subtitleTrack) {
+                // Optional: Set the first subtitle track as default
+                subtitleTrack.mode = 'showing';
 
-            // Log subtitle information
-            console.log('Subtitle available:', subtitleTrack.src);
-        }
-    });
+                // Log subtitle information
+                console.log('Subtitle available:', subtitleTrack.src);
+            }
+        });
     </script>
 </body>
+
 </html>
