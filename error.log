@@ -1,1 +1,35 @@
 Watching movie ID: 86
+Chunk file uploads/43.mp4.part0 does not exist.
+Watching movie ID: 43
+Subtitle file upload error: 
+Watching movie ID: 43
+Watching movie ID: 44
+Movie ID 43 deleted successfully.
+Movie entry with ID 43 does not exist in database.
+Movie entry with ID 43 does not exist in database.
+Movie entry with ID 43 does not exist in database.
+Movie entry with ID 43 does not exist in database.
+Movie entry with ID 43 does not exist in database.
+Movie entry with ID 43 does not exist in database.
+Subtitle file upload error: 
+Movie entry with ID 43 does not exist in database.
+Watching movie ID: 44
+Movie entry with ID 43 does not exist in database.
+Movie ID 45 deleted successfully.
+Subtitle file upload error: 
+Movie entry with ID 45 does not exist in database.
+Watching movie ID: 44
+Watching movie ID: 46
+Subtitle File Details: Array
+(
+    [name] => a.srt
+    [type] => application/octet-stream
+    [tmp_name] => C:\xampp\tmp\php2110.tmp
+    [error] => 0
+    [size] => 739
+)
+
+Subtitle file uploaded successfully: uploads/47.srt
+Watching movie ID: 47
+Watching movie ID: 47
+Watching movie ID: 47

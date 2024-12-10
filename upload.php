@@ -46,17 +46,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             fclose($combinedFile); // Close the combined file
 
             // Handle subtitle file upload
+            // At the beginning of the subtitle file upload section
+file_put_contents('error.log', "Subtitle File Details: " . print_r($subtitleFile, true) . "\n", FILE_APPEND);
             if ($subtitleFile['error'] === UPLOAD_ERR_OK) {
                 $subtitle_extension = pathinfo($subtitleFile['name'], PATHINFO_EXTENSION);
                 $subtitleFileName = $movieId . '.' . $subtitle_extension; // Name the subtitle file with the movie ID
                 $subtitleFilePath = "uploads/" . $subtitleFileName;
 
+                // Ensure the uploads directory exists
+                if (!is_dir('uploads')) {
+                    mkdir('uploads', 0777, true);
+                }
+
                 // Move the uploaded subtitle file
-                move_uploaded_file($subtitleFile['tmp_name'], $subtitleFilePath);
+                if (move_uploaded_file($subtitleFile['tmp_name'], $subtitleFilePath)) {
+                    file_put_contents('error.log', "Subtitle file uploaded successfully: $subtitleFilePath\n", FILE_APPEND);
+                } else {
+                    file_put_contents('error.log', "Failed to move subtitle file: " . print_r($subtitleFile, true) . "\n", FILE_APPEND);
+                }
             } else {
                 file_put_contents('error.log', "Subtitle file upload error: " . $subtitleFile['error'] . "\n", FILE_APPEND);
             }
-
             // Update the database with the final file path
             try {
                 $stmt = $pdo->prepare("UPDATE movies SET file_path = ?, subtitle_path = ? WHERE id = ?");
@@ -208,9 +218,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         const chunk = file.slice(start, end);
                         const formData = new FormData();
                         formData.append('movie_file', chunk, file.name);
+                        formData.append('subtitle_file', subtitleInput.files[0]); // Ensure this is included
                         formData.append('chunk_index', currentChunk);
                         formData.append('total_chunks', totalChunks);
-                        formData.append('movie_id', movieId); // Include movie ID
+                        formData.append('movie_id', movieId);
 
                         const xhrChunk = new XMLHttpRequest();
                         xhrChunk.open('POST', 'upload.php', true);
