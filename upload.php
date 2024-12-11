@@ -9,82 +9,86 @@ if (!isset($_SESSION['admin_logged_in'])) {
 }
 
 // Function to generate a unique file name
-function generateUniqueFileName($originalName, $movieId, $type) {
+function generateUniqueFileName($originalName, $movieId, $type)
+{
     $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
     return $movieId . '_' . $type . '.' . $extension;
 }
 
 // Function to convert subtitles to WebVTT
-function convertToWebVTT($inputFile, $outputFile) {
+// Function to convert subtitles to WebVTT
+function convertToWebVTT($inputFile, $outputFile)
+{
     $extension = strtolower(pathinfo($inputFile, PATHINFO_EXTENSION));
-    
+
     try {
         switch ($extension) {
             case 'srt':
                 $srtContent = file_get_contents($inputFile);
                 $webvttContent = "WEBVTT\n\n";
-                
+
                 // Split SRT file into entries
-                $entries = preg_split('/\n\n/', $srtContent);
-                
+                $entries = preg_split('/\n\s*\n/', trim($srtContent));
+
                 foreach ($entries as $entry) {
-                    if (trim($entry) === '') continue;
-                    
+                    if (trim($entry) === '')
+                        continue;
+
                     $lines = explode("\n", $entry);
-                    
-                    if (count($lines) >= 2 && preg_match('/(\d+:\d+:\d+,\d+) --> (\d+:\d+:\d+,\d+)/', $lines[1])) {
+
+                    if (count($lines) >= 3 && preg_match('/(\d+:\d+:\d+),(\d+)/', $lines[1], $matches)) {
                         // Convert timestamp format
                         $timestamp = preg_replace(
-                            '/(\d+):(\d+):(\d+),(\d+) --> (\d+):(\d+):(\d+),(\d+)/', 
-                            '$1.$4 --> $5.$8', 
+                            '/(\d+):(\d+):(\d+),(\d+) --> (\d+):(\d+):(\d+),(\d+)/',
+                            '$1.$4 --> $5.$8',
                             $lines[1]
                         );
-                        
+
                         $webvttContent .= $timestamp . "\n";
-                        
+
                         // Add subtitle text
                         for ($i = 2; $i < count($lines); $i++) {
-                            $webvttContent .= $lines[$i] . "\n";
+                            // Replace any SRT specific formatting (like \N for new lines)
+                            $webvttContent .= str_replace('\N', "\n", $lines[$i]) . "\n";
                         }
-                        
+
                         $webvttContent .= "\n";
                     }
                 }
-                
+
                 file_put_contents($outputFile, $webvttContent);
                 break;
-            
+
             case 'ass':
             case 'ssa':
                 $assContent = file_get_contents($inputFile);
                 $webvttContent = "WEBVTT\n\n";
-                
+
                 preg_match_all('/Dialogue: \d+,(\d+:\d+:\d+\.\d+),(\d+:\d+:\d+\.\d+),[^,]*,[^,]*,[^,]*,[^,]*,[^,]*,([^,]*),(.*)/', $assContent, $matches, PREG_SET_ORDER);
-                
+
                 foreach ($matches as $match) {
-                    $startTime = $match[1];
-                    $endTime = $match[2];
+                    $startTime = str_replace('.', ',', $match[1]); // Convert to WebVTT format
+                    $endTime = str_replace('.', ',', $match[2]);
                     $text = str_replace('\N', "\n", $match[4]);
-                    
+
                     $webvttContent .= "$startTime --> $endTime\n";
                     $webvttContent .= "$text\n\n";
                 }
-                
+
                 file_put_contents($outputFile, $webvttContent);
                 break;
-            
+
             default:
                 file_put_contents('error.log', "Unsupported subtitle format: $extension\n", FILE_APPEND);
                 return false;
         }
-        
+
         return true;
     } catch (Exception $e) {
         file_put_contents('error.log', "Subtitle conversion error: " . $e->getMessage() . "\n", FILE_APPEND);
         return false;
     }
 }
-
 // Handle file upload
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
@@ -99,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $movieId = $pdo->lastInsertId();
 
             echo json_encode([
-                'status' => 'success', 
+                'status' => 'success',
                 'movie_id' => $movieId
             ]);
             exit();
@@ -170,7 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             echo json_encode([
-                'status' => 'success', 
+                'status' => 'success',
                 'message' => 'Chunk uploaded successfully'
             ]);
             exit();
@@ -178,7 +182,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (Exception $e) {
         file_put_contents('error.log', "Upload error: " . $e->getMessage() . "\n", FILE_APPEND);
         echo json_encode([
-            'status' => 'error', 
+            'status' => 'error',
             'message' => $e->getMessage()
         ]);
         exit();
@@ -188,6 +192,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Movie Upload</title>
@@ -200,22 +205,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin: 0 auto;
             padding: 20px;
         }
+
         .upload-form {
             background-color: #1e1e1e;
             padding: 20px;
             border-radius: 8px;
         }
-        input, button {
+
+        input,
+        button {
             width: 100%;
             margin: 10px 0;
             padding: 10px;
             box-sizing: border-box;
         }
+
         .progress-container {
             background-color: #333;
             border-radius: 5px;
             margin-top: 20px;
         }
+
         .progress-bar {
             width: 0%;
             height: 20px;
@@ -225,6 +235,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     </style>
 </head>
+
 <body>
     <div class="upload-form">
         <h2>Upload Movie</h2>
@@ -241,98 +252,99 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
-    document.getElementById('uploadForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const form = e.target;
-        const movieFile = form.querySelector('input[name="movie_file"]').files[0];
-        const subtitleFile = form.querySelector('input[name="subtitle_file"]').files[0];
-        const progressBar = document.getElementById('progressBar');
+        document.getElementById('uploadForm').addEventListener('submit', function (e) {
+            e.preventDefault();
 
-        // Chunk upload configuration
-        const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB chunks
-        const totalChunks = Math.ceil(movieFile.size / CHUNK_SIZE);
+            const form = e.target;
+            const movieFile = form.querySelector('input[name="movie_file"]').files[0];
+            const subtitleFile = form.querySelector('input[name="subtitle_file"]').files[0];
+            const progressBar = document.getElementById('progressBar');
 
-        // Initial upload to get movie ID
-        async function initiateUpload() {
-            const initialData = new FormData();
-            initialData.append('action', 'init');
-            initialData.append('name', form.querySelector('input[name="name"]').value);
-            initialData.append('description', form.querySelector('input[name="description"]').value);
+            // Chunk upload configuration
+            const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB chunks
+            const totalChunks = Math.ceil(movieFile.size / CHUNK_SIZE);
 
-            try {
-                const response = await fetch('upload.php', {
-                    method: 'POST',
-                    body: initialData
-                });
-                const result = await response.json();
-                
-                if (result.status === 'success') {
-                    return result.movie_id;
-                } else {
-                    throw new Error('Failed to initiate upload');
-                }
-            } catch (error) {
-                console.error('Initialization error:', error);
-                alert('Upload initialization failed');
-                return null;
-            }
-        }
-
-        // Chunk upload function
-        async function uploadChunks(movieId) {
-            for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-                const start = chunkIndex * CHUNK_SIZE;
-                const end = Math.min(start + CHUNK_SIZE, movieFile.size);
-                const chunk = movieFile.slice(start, end);
-
-                const chunkData = new FormData();
-                chunkData.append('action', 'upload_chunk');
-                chunkData.append('movie_id', movieId);
-                chunkData.append('movie_file', chunk, movieFile.name);
-                chunkData.append('subtitle_file', subtitleFile);
-                chunkData.append('chunk_index', chunkIndex);
-                chunkData.append('total_chunks', totalChunks);
+            // Initial upload to get movie ID
+            async function initiateUpload() {
+                const initialData = new FormData();
+                initialData.append('action', 'init');
+                initialData.append('name', form.querySelector('input[name="name"]').value);
+                initialData.append('description', form.querySelector('input[name="description"]').value);
 
                 try {
                     const response = await fetch('upload.php', {
                         method: 'POST',
-                        body: chunkData
+                        body: initialData
                     });
                     const result = await response.json();
 
-                    // Update progress bar
-                    const progress = ((chunkIndex + 1) / totalChunks) * 100;
-                    progressBar.style.width = `${progress}%`;
-
-                    if (result.status !== 'success') {
-                        throw new Error('Chunk upload failed');
+                    if (result.status === 'success') {
+                        return result.movie_id;
+                    } else {
+                        throw new Error('Failed to initiate upload');
                     }
                 } catch (error) {
-                    console.error('Chunk upload error:', error);
-                    alert('Upload failed');
-                    return false;
+                    console.error('Initialization error:', error);
+                    alert('Upload initialization failed');
+                    return null;
                 }
             }
-            return true;
-        }
 
-        // Main upload process
-        async function startUpload() {
-            const movieId = await initiateUpload();
-            if (movieId) {
-                const uploadSuccess = await uploadChunks(movieId);
-                if (uploadSuccess) {
-                    alert('Movie uploaded successfully!');
-                    form.reset();
-                    progressBar.style.width = '0%';
+            // Chunk upload function
+            async function uploadChunks(movieId) {
+                for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+                    const start = chunkIndex * CHUNK_SIZE;
+                    const end = Math.min(start + CHUNK_SIZE, movieFile.size);
+                    const chunk = movieFile.slice(start, end);
+
+                    const chunkData = new FormData();
+                    chunkData.append('action', 'upload_chunk');
+                    chunkData.append('movie_id', movieId);
+                    chunkData.append('movie_file', chunk, movieFile.name);
+                    chunkData.append('subtitle_file', subtitleFile);
+                    chunkData.append('chunk_index', chunkIndex);
+                    chunkData.append('total_chunks', totalChunks);
+
+                    try {
+                        const response = await fetch('upload.php', {
+                            method: 'POST',
+                            body: chunkData
+                        });
+                        const result = await response.json();
+
+                        // Update progress bar
+                        const progress = ((chunkIndex + 1) / totalChunks) * 100;
+                        progressBar.style.width = `${progress}%`;
+
+                        if (result.status !== 'success') {
+                            throw new Error('Chunk upload failed');
+                        }
+                    } catch (error) {
+                        console.error('Chunk upload error:', error);
+                        alert('Upload failed');
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            // Main upload process
+            async function startUpload() {
+                const movieId = await initiateUpload();
+                if (movieId) {
+                    const uploadSuccess = await uploadChunks(movieId);
+                    if (uploadSuccess) {
+                        alert('Movie uploaded successfully!');
+                        form.reset();
+                        progressBar.style.width = '0%';
+                    }
                 }
             }
-        }
 
-        // Start the upload process
-        startUpload();
-    });
+            // Start the upload process
+            startUpload();
+        });
     </script>
 </body>
+
 </html>
