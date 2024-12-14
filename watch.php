@@ -14,8 +14,41 @@ if (isset($_GET['id'])) {
         exit();
     }
 
-    // Log movie ID
-    file_put_contents('error.log', "Watching movie ID: $id\n", FILE_APPEND);
+    // Function to get OS and Browser from User Agent
+function getOSAndBrowser($userAgent) {
+    $os = "Unknown OS";
+    $browser = "Unknown Browser";
+
+    // Determine the OS
+    if (preg_match('/linux/i', $userAgent)) {
+        $os = 'Linux';
+    } elseif (preg_match('/macintosh|mac os x/i', $userAgent)) {
+        $os = 'Mac OS';
+    } elseif (preg_match('/windows|win32/i', $userAgent)) {
+        $os = 'Windows';
+    }
+
+    // Determine the Browser
+    if (preg_match('/MSIE/i', $userAgent) || preg_match('/Trident/i', $userAgent)) {
+        $browser = 'Internet Explorer';
+    } elseif (preg_match('/Firefox/i', $userAgent)) {
+        $browser = 'Firefox';
+    } elseif (preg_match('/Chrome/i', $userAgent)) {
+        $browser = 'Chrome';
+    } elseif (preg_match('/Safari/i', $userAgent)) {
+        $browser = 'Safari';
+    } elseif (preg_match('/Opera/i', $userAgent)) {
+        $browser = 'Opera';
+    }
+
+    return "$os / $browser";
+}
+
+// Log movie details
+$clientDevice = getOSAndBrowser($_SERVER['HTTP_USER_AGENT']);
+$dateTime = date('Y-m-d H:i:s'); // Format: YYYY-MM-DD HH:MM:SS
+$logMessage = "Watching movie " . htmlspecialchars($movie['name']) . " with id of $id using $clientDevice at $dateTime\n";
+file_put_contents('error.log', $logMessage, FILE_APPEND);
 } else {
     echo "No movie specified.";
     exit();
@@ -84,7 +117,7 @@ if (isset($_GET['id'])) {
     </p>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             const video = document.querySelector('video');
             const subtitleTrack = video.querySelector('track');
 

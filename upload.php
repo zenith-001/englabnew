@@ -21,71 +21,26 @@ function convertToWebVTT($inputFile, $outputFile)
 {
     $extension = strtolower(pathinfo($inputFile, PATHINFO_EXTENSION));
 
-    try {
-        switch ($extension) {
-            case 'srt':
-                $srtContent = file_get_contents($inputFile);
-                $webvttContent = "WEBVTT\n\n";
+    if ($extension === 'srt') {
+        // Use FFmpeg to convert SRT to WebVTT
+        $command = "ffmpeg -i " . escapeshellarg($inputFile) . " " . escapeshellarg($outputFile);
+        
+        // Execute the command and capture output
+        exec($command . ' 2>&1', $output, $returnVar);
 
-                // Split SRT file into entries
-                $entries = preg_split('/\n\s*\n/', trim($srtContent));
-
-                foreach ($entries as $entry) {
-                    if (trim($entry) === '')
-                        continue;
-
-                    $lines = explode("\n", $entry);
-
-                    if (count($lines) >= 3 && preg_match('/(\d+:\d+:\d+),(\d+)/', $lines[1], $matches)) {
-                        // Convert timestamp format
-                        $timestamp = preg_replace(
-                            '/(\d+):(\d+):(\d+),(\d+) --> (\d+):(\d+):(\d+),(\d+)/',
-                            '$1.$4 --> $5.$8',
-                            $lines[1]
-                        );
-
-                        $webvttContent .= $timestamp . "\n";
-
-                        // Add subtitle text
-                        for ($i = 2; $i < count($lines); $i++) {
-                            // Replace any SRT specific formatting (like \N for new lines)
-                            $webvttContent .= str_replace('\N', "\n", $lines[$i]) . "\n";
-                        }
-
-                        $webvttContent .= "\n";
-                    }
-                }
-
-                file_put_contents($outputFile, $webvttContent);
-                break;
-
-            case 'ass':
-            case 'ssa':
-                $assContent = file_get_contents($inputFile);
-                $webvttContent = "WEBVTT\n\n";
-
-                preg_match_all('/Dialogue: \d+,(\d+:\d+:\d+\.\d+),(\d+:\d+:\d+\.\d+),[^,]*,[^,]*,[^,]*,[^,]*,[^,]*,([^,]*),(.*)/', $assContent, $matches, PREG_SET_ORDER);
-
-                foreach ($matches as $match) {
-                    $startTime = str_replace('.', ',', $match[1]); // Convert to WebVTT format
-                    $endTime = str_replace('.', ',', $match[2]);
-                    $text = str_replace('\N', "\n", $match[4]);
-
-                    $webvttContent .= "$startTime --> $endTime\n";
-                    $webvttContent .= "$text\n\n";
-                }
-
-                file_put_contents($outputFile, $webvttContent);
-                break;
-
-            default:
-                file_put_contents('error.log', "Unsupported subtitle format: $extension\n", FILE_APPEND);
-                return false;
+        // Check if the conversion was successful
+        if ($returnVar !== 0) {
+            // Log the command output for debugging
+            file_put_contents('error.log', "FFmpeg conversion error: " . implode("\n", $output) . "\nCommand: $command\n", FILE_APPEND);
+            return false;
         }
 
         return true;
-    } catch (Exception $e) {
-        file_put_contents('error.log', "Subtitle conversion error: " . $e->getMessage() . "\n", FILE_APPEND);
+    } elseif ($extension === 'ass' || $extension === 'ssa') {
+        // Handle ASS/SSA conversion if needed
+        // (You can keep your existing code for ASS/SSA here)
+    } else {
+        file_put_contents('error.log', "Unsupported subtitle format: $extension\n", FILE_APPEND);
         return false;
     }
 }
@@ -252,7 +207,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
-        document.getElementById('uploadForm').addEventListener('submit', function (e) {
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
             e.preventDefault();
 
             const form = e.target;

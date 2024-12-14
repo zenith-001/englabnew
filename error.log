@@ -48,3 +48,10 @@ Movie entry with ID 50 does not exist in database.
 Watching movie ID: 51
 Movie entry with ID 50 does not exist in database.
 Watching movie ID: 51
+SQLSTATE[HY000] [1049] Unknown database 'movie_database'Watching movie ID: 43
+Unsupported subtitle format: iso
+Watching movie Something with id of 50 using Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 at 2024-12-14 07:43:51
+Watching movie Something with id of 50 using Windows / Chrome at 2024-12-14 07:45:06
+Watching movie Something with id of 50 using Windows / Chrome at 2024-12-14 07:52:53
+FFmpeg conversion error: Successfully deleted movie ID: 51
+Successfully deleted movie ID: 50
